@@ -1,0 +1,22 @@
+{
+  "name": "libError",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "stackman": "^2.0.1"
+  },
+  "scripts": {
+    "postinstall": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.28",
+    "typescript": "^2.5"
+  },
+  "license": "Apache-2.0",
+  "main": "./lib/libError.js",
+  "typings": "./tsd/libError.d.ts",
+  "files": [
+    "src/libError.ts",
+    "tsconfig.json"
+  ]
+}
