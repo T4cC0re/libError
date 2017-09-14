@@ -18,65 +18,76 @@
 const stackman = require('stackman')();
 
 type libErrorFunc = (err: Error, message?: string, kill?: boolean) => void;
+type formatFunc = (err: Error, message?: string) => Promise<string>;
 
 declare module NodeJS {
     interface Global {
-        logErr: libErrorFunc
-        libError: libErrorFunc
+        logError: libErrorFunc
+        formatError: formatFunc
     }
 }
 
-declare const libError: libErrorFunc;
-declare const logErr: libErrorFunc;
+declare const logError: libErrorFunc;
+declare const formatError: formatFunc;
 
-global.libError = (err: Error, message?: string, kill?: boolean) => {
-    stackman.callsites(err, function (_err: Error, callsites: any[]) {
-        if (_err) {
-            throw _err;
-        }
+global.logError = (err: Error, message?: string, kill?: boolean): void => {
+    global.formatError(err, message)
+        .then((formattedError) => {
+            console.error(formattedError);
 
-        const buffer: string[] = [];
-        for (let i = 0; i < callsites.length; i++) {
-            const callsite = callsites[i];
-            let flags = `${callsite.isApp() ? 'A' : '.'}${callsite.isToplevel() ? 'G' : '.'}${callsite.isModule() ? 'M' : '.'}${callsite.isNode() ? 'C' : '.'}${callsite.isNative() ? 'N' : '.'}${callsite.isEval() ? 'E' : '.'}${callsite.isConstructor() ? 'S' : '.'}`;
-
-            let prefix = `${flags}\t[${i}] ->`;
-            if (i == 0) {
-                prefix = `[${err.name}] ${err.message}\noccurred in\n${flags}\t[${i}] ->`
-                if (message) {
-                    prefix = message + ' ' + prefix;
-                }
+            if (kill) {
+                process.exit(1);
             }
-
-            let line: string = '';
-            if (callsite.isNode()) {
-                line = '<node core>/';
-            }
-            line += `${callsite.getRelativeFileName()}:${callsite.getLineNumber()} (`;
-            if (callsite.getTypeName()) {
-                line += `${callsite.getTypeName()}::`;
-            }
-            line += `${callsite.getFunctionNameSanitized()})`;
-
-            buffer.push(`${prefix} ${line}`);
         }
-        console.error(
-            `ERROR --- ${(new Date()).toUTCString()}\n${
-                buffer.join('\n')
-                }\n}----------------------------------------------`
-        );
-        if (kill) {
-            process.exit(1);
-        }
-    });
+    );
 };
 
-global.logErr = global.libError;
+global.formatError = (err: Error, message?: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        stackman.callsites(err, function (_err: Error, callsites: any[]) {
+            if (_err) {
+                reject(_err);
+                return;
+            }
+
+            const buffer: string[] = [];
+            for (let i = 0; i < callsites.length; i++) {
+                const callsite = callsites[i];
+                let flags = `${callsite.isApp() ? 'A' : '.'}${callsite.isToplevel() ? 'G' : '.'}${callsite.isModule() ? 'M' : '.'}${callsite.isNode() ? 'C' : '.'}${callsite.isNative() ? 'N' : '.'}${callsite.isEval() ? 'E' : '.'}${callsite.isConstructor() ? 'S' : '.'}`;
+
+                let prefix = `${flags}\t[${i}] ->`;
+                if (i == 0) {
+                    prefix = `[${err.name}] ${err.message}\noccurred in\n${flags}\t[${i}] ->`
+                    if (message) {
+                        prefix = message + ' ' + prefix;
+                    }
+                }
+
+                let line: string = '';
+                if (callsite.isNode()) {
+                    line = '<node core>/';
+                }
+                line += `${callsite.getRelativeFileName()}:${callsite.getLineNumber()} (`;
+                if (callsite.getTypeName()) {
+                    line += `${callsite.getTypeName()}::`;
+                }
+                line += `${callsite.getFunctionNameSanitized()})`;
+
+                buffer.push(`${prefix} ${line}`);
+            }
+            const trace = `ERROR --- ${(new Date()).toUTCString()}\n${
+                buffer.join('\n')
+                }\n}----------------------------------------------`;
+
+            return resolve(trace);
+        });
+    })
+};
 
 process.on('unhandledRejection', (reason: Error) => {
-    libError(reason, 'unhandledRejection:', true);
+    logError(reason, 'unhandledRejection:', true);
 }).on('uncaughtException', (err: Error) => {
-    libError(err, 'uncaughtException:', true);
+    logError(err, 'uncaughtException:', true);
 }).on('warning', (warning: Error) => {
     console.warn(warning.name);    // Print the warning name
     console.warn(warning.message); // Print the warning message
