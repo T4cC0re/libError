@@ -32,7 +32,7 @@ declare const formatError: formatFunc;
 
 global.logError = (err: Error, message?: string, kill?: boolean): void => {
     global.formatError(err, message)
-        .then((formattedError: Error) => {
+        .then((formattedError: string): void => {
             console.error(formattedError);
 
             if (kill) {
