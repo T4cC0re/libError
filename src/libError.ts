@@ -31,6 +31,10 @@ declare const logError: libErrorFunc;
 declare const formatError: formatFunc;
 
 global.logError = (err: Error, message?: string, kill?: boolean): void => {
+  if(!err) {
+    // Nothing to log, idiot!
+    return;
+  }
   global.formatError(err, message)
     .then((formattedError: string): void => {
         console.error(formattedError);
@@ -45,7 +49,7 @@ global.logError = (err: Error, message?: string, kill?: boolean): void => {
 const formatUnparsedError = (err: Error, message?: string) => {
   return `ERROR --- ${(new Date()).toUTCString()
     }\n${message ? message + ' ' : ''}[${err && err.name || 'Error'}] ${err && err.message || ''
-  }\nfailed to parse. Stack:\n${
+    }\nfailed to parse. Stack:\n${
   err && err.stack || JSON.stringify(err)
     }\n----------------------------------------------`;
 };
