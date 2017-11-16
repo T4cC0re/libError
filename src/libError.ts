@@ -47,7 +47,7 @@ global.formatError = (err: Error, message?: string): Promise<string> => {
     stackman.callsites(err, function (_err: Error, callsites: any[]) {
       if (_err) {
         const trace = `ERROR --- ${(new Date()).toUTCString()
-          }[${err.name}] ${err.message}\nfailed to parse. Stack:\n${
+          }\n${message ? message + ' ' : ''}[${err.name}] ${err.message}\nfailed to parse. Stack:\n${
         err.stack || JSON.stringify(err)
           }\n----------------------------------------------`;
         return resolve(trace);
