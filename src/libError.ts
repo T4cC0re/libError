@@ -44,9 +44,9 @@ global.logError = (err: Error, message?: string, kill?: boolean): void => {
 
 const formatUnparsedError = (err: Error, message?: string) => {
   return `ERROR --- ${(new Date()).toUTCString()
-    }\n${message ? message + ' ' : ''}[${err.name || 'Error'}] ${err.message || ''
+    }\n${message ? message + ' ' : ''}[${err && err.name || 'Error'}] ${err && err.message || ''
   }\nfailed to parse. Stack:\n${
-  err.stack || JSON.stringify(err)
+  err && err.stack || JSON.stringify(err)
     }\n----------------------------------------------`;
 };
 
