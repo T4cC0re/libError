@@ -21,75 +21,78 @@ type libErrorFunc = (err: Error, message?: string, kill?: boolean) => void;
 type formatFunc = (err: Error, message?: string) => Promise<string>;
 
 declare module NodeJS {
-    interface Global {
-        logError: libErrorFunc
-        formatError: formatFunc
-    }
+  interface Global {
+    logError: libErrorFunc
+    formatError: formatFunc
+  }
 }
 
 declare const logError: libErrorFunc;
 declare const formatError: formatFunc;
 
 global.logError = (err: Error, message?: string, kill?: boolean): void => {
-    global.formatError(err, message)
-        .then((formattedError: string): void => {
-            console.error(formattedError);
+  global.formatError(err, message)
+    .then((formattedError: string): void => {
+        console.error(formattedError);
 
-            if (kill) {
-                process.exit(1);
-            }
+        if (kill === true) {
+          process.exit(1);
         }
+      },
     );
 };
 
 global.formatError = (err: Error, message?: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        stackman.callsites(err, function (_err: Error, callsites: any[]) {
-            if (_err) {
-                reject(_err);
-                return;
-            }
+  return new Promise((resolve) => {
+    stackman.callsites(err, function (_err: Error, callsites: any[]) {
+      if (_err) {
+        const trace = `ERROR --- ${(new Date()).toUTCString()
+          }[${err.name}] ${err.message}\nfailed to parse. Stack:\n${
+        err.stack || JSON.stringify(err)
+          }\n----------------------------------------------`;
+        return resolve(trace);
+      }
 
-            const buffer: string[] = [];
-            for (let i = 0; i < callsites.length; i++) {
-                const callsite = callsites[i];
-                let flags = `${callsite.isApp() ? 'A' : '.'}${callsite.isToplevel() ? 'G' : '.'}${callsite.isModule() ? 'M' : '.'}${callsite.isNode() ? 'C' : '.'}${callsite.isNative() ? 'N' : '.'}${callsite.isEval() ? 'E' : '.'}${callsite.isConstructor() ? 'S' : '.'}`;
+      const buffer: string[] = [];
+      for (let i = 0; i < callsites.length; i++) {
+        const callsite = callsites[i];
+        let flags = `${callsite.isApp() ? 'A' : '.'}${callsite.isToplevel() ? 'G' : '.'}${callsite.isModule() ? 'M' : '.'}${callsite.isNode() ? 'C' : '.'}${callsite.isNative() ? 'N' : '.'}${callsite.isEval() ? 'E' : '.'}${callsite.isConstructor() ? 'S' : '.'}`;
 
-                let prefix = `${flags}\t[${i}] ->`;
-                if (i == 0) {
-                    prefix = `[${err.name}] ${err.message}\noccurred in\n${flags}\t[${i}] ->`
-                    if (message) {
-                        prefix = message + ' ' + prefix;
-                    }
-                }
+        let prefix = `${flags}\t[${i}] ->`;
+        if (i == 0) {
+          prefix = `[${err.name}] ${err.message}\noccurred in\n${flags}\t[${i}] ->`;
+          if (message) {
+            prefix = message + ' ' + prefix;
+          }
+        }
 
-                let line: string = '';
-                if (callsite.isNode()) {
-                    line = '<node core>/';
-                }
-                line += `${callsite.getRelativeFileName()}:${callsite.getLineNumber()} (`;
-                if (callsite.getTypeName()) {
-                    line += `${callsite.getTypeName()}::`;
-                }
-                line += `${callsite.getFunctionNameSanitized()})`;
+        let line: string = '';
+        if (callsite.isNode()) {
+          line = '<node core>/';
+        }
+        line += `${callsite.getRelativeFileName()}:${callsite.getLineNumber()} (`;
+        if (callsite.getTypeName()) {
+          line += `${callsite.getTypeName()}::`;
+        }
+        line += `${callsite.getFunctionNameSanitized()})`;
 
-                buffer.push(`${prefix} ${line}`);
-            }
-            const trace = `ERROR --- ${(new Date()).toUTCString()}\n${
-                buffer.join('\n')
-                }\n}----------------------------------------------`;
+        buffer.push(`${prefix} ${line}`);
+      }
+      const trace = `ERROR --- ${(new Date()).toUTCString()
+        }\n${buffer.join('\n')
+        }\n----------------------------------------------`;
 
-            return resolve(trace);
-        });
-    })
+      return resolve(trace);
+    });
+  });
 };
 
 process.on('unhandledRejection', (reason: Error) => {
-    logError(reason, 'unhandledRejection:', true);
+  logError(reason, 'unhandledRejection:', true);
 }).on('uncaughtException', (err: Error) => {
-    logError(err, 'uncaughtException:', true);
+  logError(err, 'uncaughtException:', true);
 }).on('warning', (warning: Error) => {
-    console.warn(warning.name);    // Print the warning name
-    console.warn(warning.message); // Print the warning message
-    console.warn(warning.stack);   // Print the stack trace
+  console.warn(warning.name);    // Print the warning name
+  console.warn(warning.message); // Print the warning message
+  console.warn(warning.stack);   // Print the stack trace
 });
