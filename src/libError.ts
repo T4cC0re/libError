@@ -44,13 +44,14 @@ global.logError = (err: Error, message?: string, kill?: boolean): void => {
 
 const formatUnparsedError = (err: Error, message?: string) => {
   return `ERROR --- ${(new Date()).toUTCString()
-    }\n${message ? message + ' ' : ''}[${err.name}] ${err.message}\nfailed to parse. Stack:\n${
+    }\n${message ? message + ' ' : ''}[${err.name || 'Error'}] ${err.message || ''
+  }\nfailed to parse. Stack:\n${
   err.stack || JSON.stringify(err)
     }\n----------------------------------------------`;
 };
 
 global.formatError = (err: Error, message?: string): Promise<string> => {
-  return new Promise((resolve) => {
+  return new Promise<string>((resolve) => {
     try {
       stackman.callsites(err, function (_err: Error, callsites: any[]) {
         if (_err) {
